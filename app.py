@@ -233,6 +233,14 @@ st.markdown("""
 # ║                    SIDEBAR                                  ║
 # ╚══════════════════════════════════════════════════════════════╝
 with st.sidebar:
+    # ── ACUD Logo ──
+    st.image(
+        "assets/acud_logo.png",
+        use_container_width=True,
+        caption="Inspired by smart city initiatives such as Egypt's New Administrative Capital"
+    )
+    st.markdown("---")
+    
     st.markdown("## ⚙️ Control Panel")
     st.markdown("---")
 
@@ -490,78 +498,70 @@ def render_detection_log(stats):
 
 # ── ABOUT PAGE ──
 if source_option == "ℹ️ About":
-    st.markdown('<div class="section-header">ℹ️ About This Project</div>', unsafe_allow_html=True)
+    st.title("🏗️ AI Construction Safety Monitoring System")
+    st.markdown("---")
 
-    st.markdown("""
-    <div class="glass-container">
-        <h2 style="color:#e94560; margin-top:0;">🏗️ AI Construction Safety Monitoring System</h2>
-        <p style="color:rgba(255,255,255,0.85); font-size:1.05rem; line-height:1.7;">
-            This project is an <strong>AI-powered real-time safety monitoring dashboard</strong> designed 
-            for construction sites as part of a <strong>Smart City</strong> initiative. It uses 
-            <strong>YOLOv8</strong> (You Only Look Once) deep learning model to detect Personal Protective 
-            Equipment (PPE) on workers and flag safety violations instantly.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("")
-
-    col_a, col_b = st.columns(2)
-    with col_a:
+    # 1. Overview & Problem Statement
+    with st.container():
+        st.subheader("📌 Overview")
         st.markdown("""
-        <div class="glass-container">
-            <h3 style="color:#60a5fa; margin-top:0;">🎯 What It Detects</h3>
-            <ul style="color:rgba(255,255,255,0.8); line-height:2;">
-                <li><strong>👷 People</strong> — Workers on the construction site</li>
-                <li><strong>⛑️ Hard Hats / Helmets</strong> — Head protection compliance</li>
-                <li><strong>🦺 Safety Vests</strong> — High-visibility vest compliance</li>
-                <li><strong>⚠️ Violations</strong> — Workers without required PPE</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        The **AI Construction Safety Monitoring System** is an advanced computer vision platform designed to automate safety compliance on large-scale construction sites. 
+        By leveraging state-of-the-art deep learning models, this system provides **real-time detection of Personal Protective Equipment (PPE)**, ensuring that workers are equipped with essential safety gear such as helmets and high-visibility vests.
+        """)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.info("💡 **The Problem:** Manual safety monitoring in sprawling, high-risk construction environments is labor-intensive, prone to human error, and difficult to scale. Undetected safety violations can lead to severe accidents and regulatory penalties.")
+        with col2:
+            st.success("⚙️ **The Solution:** Automating compliance checks using YOLOv8 object detection. By integrating with existing CCTV or camera infrastructure, the system flags violations instantly, creating a proactive rather than reactive safety culture.")
 
-    with col_b:
+    st.markdown("---")
+
+    # 2. Key Features & Impact
+    with st.container():
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            st.subheader("✨ Core Features")
+            st.markdown("""
+            - **Real-Time PPE Detection:** Simultaneously detects persons, helmets, and safety vests with high accuracy.
+            - **Instant Violation Alerts:** Automatically identifies workers missing required protective gear.
+            - **Visual Analytics Dashboard:** Provides live metrics, compliance breakdowns, and detection logs.
+            - **Multi-Source Ingestion:** Supports image uploads, pre-recorded video, live webcams, and IP/CCTV camera streams.
+            """)
+            
+        with col4:
+            st.subheader("📈 System Impact")
+            st.markdown("""
+            - 🛡️ **Improves Worker Safety:** Drastically reduces workplace accidents through 24/7 monitoring.
+            - ⏱️ **Scalable Monitoring:** A single system can monitor multiple camera feeds simultaneously.
+            - 📊 **Data-Driven Insights:** Provides site managers with quantitative data on safety compliance over time.
+            - 🏢 **Supports Smart Infrastructure:** Lays the groundwork for fully digitized, intelligent construction management.
+            """)
+
+    st.markdown("---")
+
+    # 3. Smart City Relevance
+    with st.container():
+        st.subheader("🏙️ Smart City Relevance")
         st.markdown("""
-        <div class="glass-container">
-            <h3 style="color:#fbbf24; margin-top:0;">🛠️ Technology Stack</h3>
-            <ul style="color:rgba(255,255,255,0.8); line-height:2;">
-                <li><strong>YOLOv8</strong> — State-of-the-art object detection (Ultralytics)</li>
-                <li><strong>OpenCV</strong> — Real-time image and video processing</li>
-                <li><strong>Streamlit</strong> — Interactive web dashboard framework</li>
-                <li><strong>Plotly</strong> — Dynamic compliance charts and analytics</li>
-                <li><strong>Python 3</strong> — Core programming language</li>
-            </ul>
-        </div>
-        """, unsafe_allow_html=True)
+        This platform is specifically designed to integrate seamlessly into **Smart City ecosystems**. 
+        In landmark developments like **Egypt's New Administrative Capital (developed by ACUD)**, centralized monitoring of mega-construction projects is critical. 
+        
+        By processing live video streams directly at the edge or via centralized cloud infrastructure, city authorities and primary contractors can ensure standardized safety compliance across dozens of interconnected construction zones simultaneously.
+        """)
 
-    st.markdown("")
+    st.markdown("---")
 
-    st.markdown("""
-    <div class="glass-container">
-        <h3 style="color:#4ade80; margin-top:0;">📋 How to Use</h3>
-        <ol style="color:rgba(255,255,255,0.8); line-height:2;">
-            <li>Select a detection source from the sidebar (Image, Video, Webcam, or CCTV)</li>
-            <li>Upload your media or connect to a live camera feed</li>
-            <li>The AI will automatically detect PPE and flag any violations</li>
-            <li>View real-time metrics, safety status, and compliance charts</li>
-        </ol>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("")
-
-    st.markdown("""
-    <div class="glass-container">
-        <h3 style="color:#c084fc; margin-top:0;">🏙️ Smart City Vision</h3>
-        <p style="color:rgba(255,255,255,0.8); line-height:1.7;">
-            This system is part of a broader Smart City vision to leverage AI and IoT technologies 
-            for urban safety and infrastructure management. By deploying this system on construction 
-            sites with CCTV cameras, city authorities and site managers can monitor worker safety 
-            <strong>24/7</strong>, reduce workplace accidents, and ensure regulatory compliance — 
-            all in real time, without requiring constant human supervision.
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    # 4. Future Work
+    with st.container():
+        st.subheader("🚀 Future Work & Enhancements")
+        st.markdown("""
+        - **Extended Detection Capabilities:** Adding support for safety gloves, safety boots, and harness detection.
+        - **IoT Integration:** Connecting the detection system directly to automated site alarms, access control gates, or supervisor mobile devices.
+        - **Edge Deployment:** Optimizing the YOLOv8 model for deployment on edge devices like NVIDIA Jetson Nano for offline, low-latency processing.
+        - **Cloud Analytics:** Building a persistent database to track historical compliance trends and generate predictive safety reports.
+        """)
 
 
 if model is None and source_option != "ℹ️ About":
