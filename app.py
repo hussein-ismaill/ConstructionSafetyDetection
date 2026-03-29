@@ -197,7 +197,7 @@ st.markdown("""
 # ╚══════════════════════════════════════════════════════════════╝
 @st.cache_resource
 def load_model():
-    """Scan for the latest trained model; fall back to generic YOLOv8n."""
+    """Scan for the latest trained model; fall back to generic YOLOv8n (auto-downloads)."""
     candidates = sorted(
         glob.glob("runs/detect/train*/weights/best.pt"),
         key=os.path.getctime,
@@ -205,10 +205,9 @@ def load_model():
     )
     if candidates and os.path.exists(candidates[0]):
         return YOLO(candidates[0]), True, candidates[0]
-    elif os.path.exists("yolov8n.pt"):
-        return YOLO("yolov8n.pt"), False, "yolov8n.pt"
     else:
-        return None, False, None
+        # Ultralytics auto-downloads yolov8n.pt if not present
+        return YOLO("yolov8n.pt"), False, "yolov8n.pt"
 
 model, is_custom, model_path = load_model()
 
