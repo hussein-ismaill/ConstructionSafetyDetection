@@ -198,11 +198,17 @@ st.markdown("""
 @st.cache_resource
 def load_model():
     """Scan for the latest trained model; fall back to generic YOLOv8n (auto-downloads)."""
-    candidates = sorted(
-        glob.glob("runs/detect/train*/weights/best.pt"),
-        key=os.path.getctime,
-        reverse=True,
-    )
+    import re
+    try:
+        candidates = glob.glob("runs/detect/train*/weights/best.pt")
+        # Sort by train number (e.g. train10 > train9 > train7)
+        def train_num(path):
+            m = re.search(r"train(\d+)", path)
+            return int(m.group(1)) if m else 0
+        candidates.sort(key=train_num, reverse=True)
+    except Exception:
+        candidates = []
+
     if candidates and os.path.exists(candidates[0]):
         return YOLO(candidates[0]), True, candidates[0]
     else:
