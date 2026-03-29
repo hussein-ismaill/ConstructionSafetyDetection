@@ -259,7 +259,7 @@ with st.sidebar:
     # Source selection
     source_option = st.radio(
         "📡 Navigation",
-        ("ℹ️ About", "📷 Image Upload", "🎥 Video Upload", "📼 Demo Video", "🔴 Live Webcam", "📹 CCTV Camera"),
+        ("ℹ️ About", "📷 Image Upload", "🎥 Video Upload", "🔴 Live Webcam", "📹 CCTV Camera"),
         index=0,
     )
 
@@ -302,24 +302,12 @@ def process_frame(img, conf_thresh=0.25):
     Returns: (annotated_bgr_image, stats_dict)
     """
     results = model(img, stream=False, verbose=False, conf=conf_thresh)
-    
-    # We will manually draw boxes for better control over label size
-    annotated = img.copy()
+    annotated = results[0].plot()
 
     stats = {
         "persons": [], "helmets": [], "vests": [],
         "no_helmets": [], "no_vests": [],
         "violations": 0, "detections": [],
-    }
-
-    # Custom colors for classes
-    colors = {
-        "helmet": (34, 197, 94),   # Green
-        "vest": (245, 158, 11),    # Orange
-        "person": (59, 130, 246),  # Blue
-        "no_helmet": (0, 0, 255),  # Red
-        "no_vest": (0, 0, 255),    # Red
-        "other": (156, 163, 175)   # Gray
     }
 
     for r in results:
@@ -336,15 +324,6 @@ def process_frame(img, conf_thresh=0.25):
                 "confidence": conf,
                 "bbox": (x1, y1, x2, y2),
             })
-
-            # Draw bounding box and smaller label
-            color = colors.get(category, colors["other"])
-            cv2.rectangle(annotated, (x1, y1), (x2, y2), color, 2)
-            
-            label = f"{raw_name} {conf:.2f}"
-            label_y = max(15, y1 - 5)
-            # Smaller font scale (0.4) and thickness (1)
-            cv2.putText(annotated, label, (x1, label_y), cv2.FONT_HERSHEY_SIMPLEX, 0.4, color, 1, cv2.LINE_AA)
 
             if category == "person":
                 stats["persons"].append((x1, y1, x2, y2))
@@ -387,28 +366,19 @@ def process_frame(img, conf_thresh=0.25):
 
 
 def render_metrics(stats):
-    """Render the metric cards, safety score, AI insights, and alerts."""
+    """Render the 4 metric cards + safety status banner."""
     n_people = len(stats["persons"])
     n_helmets = len(stats["helmets"])
     n_vests = len(stats["vests"])
     n_violations = stats["violations"]
 
-    # Calculate Safety Score and Compliance %
-    if n_people > 0:
-        compliance_pct = int(((n_people - n_violations) / n_people) * 100)
-    else:
-        compliance_pct = 100
-
-    safety_score = compliance_pct  # For simplicity, score = compliance %
-
-    # 1. KPI Metrics Row
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(f"""
         <div class="metric-card metric-blue">
             <div class="metric-icon">👷</div>
             <div class="metric-value">{n_people}</div>
-            <div class="metric-label">Workers</div>
+            <div class="metric-label">People</div>
         </div>""", unsafe_allow_html=True)
     with c2:
         st.markdown(f"""
@@ -431,85 +401,55 @@ def render_metrics(stats):
             <div class="metric-value">{n_violations}</div>
             <div class="metric-label">Violations</div>
         </div>""", unsafe_allow_html=True)
-    with c5:
-        # Safety Score Card
-        color_class = "metric-green" if safety_score >= 90 else "metric-orange" if safety_score >= 70 else "metric-red"
+
+    # Safety status banner
+    if n_violations == 0 and n_people > 0:
+        st.markdown("""
+        <div class="safety-safe">
+            <h3>✅ ALL CLEAR</h3>
+            <p>All detected workers are wearing proper PPE</p>
+        </div>""", unsafe_allow_html=True)
+    elif n_violations > 0:
         st.markdown(f"""
-        <div class="metric-card {color_class}">
-            <div class="metric-icon">🛡️</div>
-            <div class="metric-value">{safety_score}%</div>
-            <div class="metric-label">Safety Score</div>
+        <div class="safety-danger">
+            <h3>🚨 SAFETY VIOLATION DETECTED</h3>
+            <p>{n_violations} worker(s) found without required protective equipment</p>
         </div>""", unsafe_allow_html=True)
 
-    # 2. Real-Time Alerts & AI Insights
-    st.markdown("---")
-    alert_col, insight_col = st.columns(2)
 
-    with alert_col:
-        st.subheader("🚨 Real-Time Alerts")
-        if n_violations > 0:
-            st.error(f"**CRITICAL:** {n_violations} worker(s) detected without required protective equipment! Immediate intervention required.")
-        elif n_people == 0:
-            st.info("No workers detected in the current frame.")
-        else:
-            st.success("All detected workers are fully compliant. No active alerts.")
-
-    with insight_col:
-        st.subheader("🧠 AI Insights")
-        st.markdown('<div class="glass-container" style="padding: 1rem;">', unsafe_allow_html=True)
-        if n_people == 0:
-            st.write("💤 **Status:** Idle. Waiting for worker activity.")
-        elif safety_score == 100:
-            st.write("✅ **Status:** Excellent. PPE policies are being strictly adhered to.")
-        elif safety_score >= 80:
-            st.write("⚠️ **Status:** Good, but minor infractions detected. Consider a brief safety reminder briefing.")
-        else:
-            st.write("🛑 **Status:** High Risk. Consistent PPE violations detected. Dispatch safety officer to the zone immediately.")
-        st.markdown('</div>', unsafe_allow_html=True)
-
-
-def render_charts(stats, session_history=None):
-    """Render compliance gauge, detection bar chart, and report generation."""
+def render_charts(stats):
+    """Render compliance pie chart and detection bar chart side by side."""
     n_helmets = len(stats["helmets"])
     n_no_helmets = stats["violations"]
     n_vests = len(stats["vests"])
     n_people = len(stats["persons"])
-    
-    if n_people > 0:
-        safety_score = int(((n_people - n_no_helmets) / n_people) * 100)
-    else:
-        safety_score = 100
 
-    col_gauge, col_bar = st.columns(2)
+    col_pie, col_bar = st.columns(2)
 
-    with col_gauge:
-        st.markdown('<div class="section-header">🛡️ Safety Score</div>', unsafe_allow_html=True)
-        # Gauge Chart for Safety Score
-        fig_gauge = go.Figure(go.Indicator(
-            mode="gauge+number",
-            value=safety_score,
-            domain={'x': [0, 1], 'y': [0, 1]},
-            gauge={
-                'axis': {'range': [0, 100], 'tickwidth': 1, 'tickcolor': "white"},
-                'bar': {'color': "rgba(255,255,255,0.4)"},
-                'bgcolor': "rgba(0,0,0,0)",
-                'borderwidth': 2,
-                'bordercolor': "rgba(255,255,255,0.2)",
-                'steps': [
-                    {'range': [0, 69], 'color': "#ef4444"},   # Red
-                    {'range': [70, 89], 'color': "#f59e0b"},  # Orange
-                    {'range': [90, 100], 'color': "#22c55e"}  # Green
-                ],
-            }
-        ))
-        fig_gauge.update_layout(
-            paper_bgcolor="rgba(0,0,0,0)",
-            plot_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="rgba(255,255,255,0.8)"),
-            margin=dict(t=20, b=20, l=20, r=20),
-            height=280,
-        )
-        st.plotly_chart(fig_gauge, use_container_width=True)
+    with col_pie:
+        st.markdown('<div class="section-header">📊 PPE Compliance</div>', unsafe_allow_html=True)
+        compliant = n_helmets
+        non_compliant = n_no_helmets
+        if compliant + non_compliant > 0:
+            fig_pie = go.Figure(data=[go.Pie(
+                labels=["Compliant (Helmet)", "Non-Compliant"],
+                values=[compliant, non_compliant],
+                hole=0.55,
+                marker=dict(colors=["#22c55e", "#ef4444"]),
+                textfont=dict(size=13, color="white"),
+                hoverinfo="label+percent+value",
+            )])
+            fig_pie.update_layout(
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="rgba(255,255,255,0.8)"),
+                legend=dict(font=dict(color="rgba(255,255,255,0.7)")),
+                margin=dict(t=10, b=10, l=10, r=10),
+                height=280,
+            )
+            st.plotly_chart(fig_pie, use_container_width=True)
+        else:
+            st.info("No helmet data to display yet.")
 
     with col_bar:
         st.markdown('<div class="section-header">📈 Detection Breakdown</div>', unsafe_allow_html=True)
@@ -530,39 +470,10 @@ def render_charts(stats, session_history=None):
             font=dict(color="rgba(255,255,255,0.8)"),
             xaxis=dict(showgrid=False),
             yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.05)"),
-            margin=dict(t=20, b=20, l=20, r=20),
+            margin=dict(t=10, b=10, l=10, r=10),
             height=280,
         )
         st.plotly_chart(fig_bar, use_container_width=True)
-
-    # 3. Report Generation
-    st.markdown("---")
-    st.markdown('<div class="section-header">📄 Report Generation</div>', unsafe_allow_html=True)
-    
-    import pandas as pd
-    from datetime import datetime
-    
-    # Create a simple report DataFrame
-    report_data = {
-        "Timestamp": [datetime.now().strftime("%Y-%m-%d %H:%M:%S")],
-        "Total Workers": [n_people],
-        "Helmets Detected": [n_helmets],
-        "Vests Detected": [n_vests],
-        "Violations": [n_no_helmets],
-        "Safety Score (%)": [safety_score]
-    }
-    df_report = pd.DataFrame(report_data)
-    
-    st.write("Download the current session's safety snapshot as a CSV report for record-keeping and compliance auditing.")
-    
-    csv = df_report.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Safety Report (CSV)",
-        data=csv,
-        file_name=f"acud_safety_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
-        mime="text/csv",
-        use_container_width=True
-    )
 
 
 def render_detection_log(stats):
@@ -630,7 +541,34 @@ if source_option == "ℹ️ About":
 
     st.markdown("---")
 
-    # 3. Smart City Relevance
+    # 3. Analytics & AI Insights
+    with st.container():
+        st.subheader("📊 Metrics & AI Insights")
+        
+        col5, col6 = st.columns(2)
+        with col5:
+            st.markdown("""
+            **Metrics Dashboard**
+            We provide real-time analytics to help supervisors monitor safety standards globally, including:
+            - **Number of workers detected**
+            - **Number of helmets and vests**
+            - **Safety violations**
+            
+            *This helps in tracking compliance over time and identifying high-risk areas on the site.*
+            """)
+        
+        with col6:
+            st.markdown("""
+            **🧠 AI Insights**
+            The system goes beyond basic detection by generating actionable insights:
+            - **Violation Rate Analysis:** Detecting unusually high violation rates in specific zones.
+            - **Supervision Recommendations:** Recommending increased supervision when compliance drops below acceptable thresholds.
+            - **Predictive Interventions:** Flagging recurring non-compliance events before they lead to accidents.
+            """)
+
+    st.markdown("---")
+
+    # 4. Smart City Relevance
     with st.container():
         st.subheader("🏙️ Smart City Relevance")
         st.markdown("""
@@ -642,7 +580,7 @@ if source_option == "ℹ️ About":
 
     st.markdown("---")
 
-    # 4. Future Work
+    # 5. Future Work
     with st.container():
         st.subheader("🚀 Future Work & Enhancements")
         st.markdown("""
@@ -754,61 +692,6 @@ elif source_option == "🎥 Video Upload":
             st.info("🏁 Video processing complete.")
     else:
         st.info("👆 Upload a construction site video to begin safety analysis.")
-
-
-# ── DEMO VIDEO ──
-elif source_option == "📼 Demo Video":
-    st.markdown('<div class="section-header">📼 Demo Video Analysis</div>', unsafe_allow_html=True)
-    st.info("Playing a built-in demo video to showcase the AI's capabilities...")
-    
-    # Path to a demo video (assuming there's one in the project directory, or fallback to file uploader style if none exists)
-    demo_video_path = "assets/demo_video.mp4"
-    
-    if os.path.exists(demo_video_path):
-        cap = cv2.VideoCapture(demo_video_path)
-        if not cap.isOpened():
-            st.error("❌ Could not open demo video file.")
-        else:
-            vid_col, stats_col = st.columns([2, 1])
-
-            with vid_col:
-                stframe = st.empty()
-            with stats_col:
-                st.markdown('<div class="section-header">📊 Live Metrics</div>', unsafe_allow_html=True)
-                metrics_placeholder = st.empty()
-                status_placeholder = st.empty()
-
-            frame_count = 0
-            while cap.isOpened():
-                success, frame = cap.read()
-                if not success:
-                    break
-                frame_count += 1
-
-                if detection_enabled:
-                    annotated, stats = process_frame(frame)
-                    annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-                    stframe.image(annotated_rgb, channels="RGB", use_container_width=True)
-
-                    if frame_count % 3 == 0:
-                        with metrics_placeholder.container():
-                            st.metric("👷 People", len(stats["persons"]))
-                            st.metric("⛑️ Helmets", len(stats["helmets"]))
-                            st.metric("🦺 Vests", len(stats["vests"]))
-                            st.metric("⚠️ Violations", stats["violations"])
-                        with status_placeholder.container():
-                            if stats["violations"] > 0:
-                                st.error(f"🚨 {stats['violations']} violation(s) detected!")
-                            elif len(stats["persons"]) > 0:
-                                st.success("✅ All workers compliant")
-                else:
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    stframe.image(frame_rgb, channels="RGB", use_container_width=True)
-
-            cap.release()
-            st.info("🏁 Demo video playback complete.")
-    else:
-        st.warning(f"⚠️ Demo video not found at `{demo_video_path}`. Please add a video file there to enable this feature.")
 
 
 # ── LIVE WEBCAM ──
